@@ -16,7 +16,8 @@ const abi = {
   count: 'uint256:getOfficialPoolsCount',
   pool: 'function officialPools(uint256) view returns (address)',
   tokens: 'function getPoolTokens(address) view returns (address[])',
-  hook: 'function getAssetHook(address) view returns (address target)',
+  // one declared output: the sdk returns the bare address, and it decodes both pool generations (the first returns fewer words)
+  hook: 'function getAssetHook(address) view returns (address)',
   nav: 'uint256:navAssets',
   invested: 'function getInvested(address) view returns (uint128)',
 }
@@ -53,7 +54,7 @@ function tvl(chain) {
       permitFailure: true,
     })
     const hooked = legs
-      .map((l, i) => ({ ...l, hook: hooks[i] && hooks[i].target }))
+      .map((l, i) => ({ ...l, hook: hooks[i] }))
       .filter(l => l.hook && +l.hook)
     const nav = await api.multiCall({ abi: abi.nav, calls: hooked.map(l => l.hook), permitFailure: true })
     const failed = hooked.filter((_, i) => nav[i] === null || nav[i] === undefined)
@@ -63,9 +64,9 @@ function tvl(chain) {
       permitFailure: true,
     })
     hooked.forEach((l, i) => {
-      if (nav[i] !== null && nav[i] !== undefined) api.add(l.token, nav[i])
+      if (nav[i] !== null && nav[i] !== undefined) api.add(l.token.toLowerCase(), nav[i])
     })
-    failed.forEach((l, i) => book[i] && api.add(l.token, book[i]))
+    failed.forEach((l, i) => book[i] && api.add(l.token.toLowerCase(), book[i]))
   }
 }
 
